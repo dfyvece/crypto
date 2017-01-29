@@ -161,7 +161,7 @@ def repeating_key_xor(data, guess=1, hamming=False):
             j += key_size
         _, k = single_byte_xor(block.encode("hex"), hamming)
         key += k
-    return xor(data.encode("hex"), key).decode("hex"), key
+    return xor(data.encode("hex"), key), key
 
 
 def base64_to_hex(data):
@@ -169,7 +169,13 @@ def base64_to_hex(data):
     return data.encode("hex")
 
 
-def pretty_print(data, raw=False, b64=False, showkey=False, guess=1, ham=False):
+def pretty_print(data,
+                 decode=False,
+                 raw=False,
+                 b64=False,
+                 showkey=False,
+                 guess=1,
+                 ham=False):
     if b64:
         data = base64_to_hex(data)
     elif raw:
@@ -181,20 +187,19 @@ def pretty_print(data, raw=False, b64=False, showkey=False, guess=1, ham=False):
         print "\nKey (Hex)  : '%s'" % (key)
         print "Key (ASCII): '%s'" % (key.decode("hex"))
     print "\nPlaintext:"
+    if decode:
+        decrypted = decrypted.decode("hex")
     print decrypted
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Decode XOR encrypted hex data",
-        epilog="If no options are given, read from stdin until EOF"
-    )
-    parser.add_argument("-d", "--data",
-        metavar="DATA",
-        type=str
+        epilog="Default behavior is to read from stdin until EOF"
     )
     parser.add_argument("-f", "--file",
         metavar="FILE_NAME",
+        help='read content from specified file(s) instead of stdin',
         type=str,
         action='append'
     )
@@ -207,6 +212,10 @@ def main():
     )
     parser.add_argument("-r", "--raw",
         help='data is a raw string',
+        action='store_true'
+    )
+    parser.add_argument("-d", "--decode",
+        help='return raw (hex decoded) data',
         action='store_true'
     )
     parser.add_argument("-b", "--base64",
@@ -228,15 +237,6 @@ def main():
         if args[key] is None:
             del args[key]
 
-    if "data" in args:
-        pretty_print(args["data"],
-                     args["raw"],
-                     args["base64"],
-                     args["key"],
-                     args["num"],
-                     args["hamming"])
-        sys.exit(0)
-
     if "file" in args:
         for fname in args["file"]:
             print "="*60
@@ -245,6 +245,7 @@ def main():
             f = open(fname, 'r')
             data = f.read()
             pretty_print(data,
+                         args["decode"],
                          args["raw"],
                          args["base64"],
                          args["key"],
@@ -255,6 +256,7 @@ def main():
     # Read from stdin until EOF
     data = sys.stdin.read()
     pretty_print(data,
+                 args["decode"],
                  args["raw"],
                  args["base64"],
                  args["key"],
